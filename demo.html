@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A real Lucid MDM pipeline run: match, golden record with provenance, a withheld contradiction, cite-or-refuse answers, and the deterministic fingerprint.">
+<title>Lucid MDM — the end-to-end run</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1a1a1a;--mut:#6b6b6b;--card:#ffffff;--line:#e6e3dc;
+--acc:#0b6b53;--acc2:#7a5cff;--warn:#b4552d;--hi:#0b6b53;--lo:#b4552d;--code:#f2efe8;}
+@media (prefers-color-scheme:dark){:root{--bg:#141412;--fg:#ececec;--mut:#9a978f;
+--card:#1e1e1b;--line:#33322d;--acc:#3fbf9b;--acc2:#a892ff;--warn:#e08a5c;
+--hi:#3fbf9b;--lo:#e08a5c;--code:#26251f;}}
+:root[data-theme="dark"]{--bg:#141412;--fg:#ececec;--mut:#9a978f;--card:#1e1e1b;
+--line:#33322d;--acc:#3fbf9b;--acc2:#a892ff;--warn:#e08a5c;--hi:#3fbf9b;
+--lo:#e08a5c;--code:#26251f;}
+:root[data-theme="light"]{--bg:#fbfaf7;--fg:#1a1a1a;--mut:#6b6b6b;--card:#ffffff;
+--line:#e6e3dc;--acc:#0b6b53;--acc2:#7a5cff;--warn:#b4552d;--hi:#0b6b53;
+--lo:#b4552d;--code:#f2efe8;}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+.wrap{max-width:960px;margin:0 auto;padding:2.5rem 1.25rem 5rem;}
+a{color:var(--acc);}
+.k{color:var(--acc);font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+font-size:.72rem;margin:0 0 .5rem;}
+h1{font-size:2.4rem;line-height:1.12;margin:.1rem 0 .6rem;letter-spacing:-.01em;}
+.lede{color:var(--mut);font-size:1.1rem;max-width:60ch;}
+.cta{display:flex;flex-wrap:wrap;gap:.7rem;margin:1.7rem 0 .5rem;}
+.btn{display:inline-block;padding:.6rem 1.1rem;border-radius:10px;font-weight:600;
+font-size:.95rem;text-decoration:none;border:1px solid var(--line);}
+.btn.primary{background:var(--acc);color:#fff;border-color:var(--acc);}
+.btn.ghost{background:var(--card);color:var(--fg);}
+.stats{display:flex;flex-wrap:wrap;gap:.6rem;margin:1.8rem 0 .5rem;}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;
+padding:.7rem 1rem;}
+.stat b{display:block;font-size:1.5rem;}
+.stat span{color:var(--mut);font-size:.78rem;}
+section{margin:2.6rem 0 0;}
+.sechead{display:flex;align-items:baseline;gap:.6rem;margin:0 0 .3rem;}
+.sechead h2{font-size:1.35rem;margin:0;}
+.sechead .n{color:var(--acc);font-weight:700;}
+.sub{color:var(--mut);margin:.1rem 0 1.1rem;font-size:.96rem;max-width:64ch;}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:.9rem;}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:.9rem;}
+@media(max-width:680px){.grid2,.grid3{grid-template-columns:1fr;}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+padding:1.1rem 1.2rem;}
+.card h3{margin:0 0 .4rem;font-size:1.02rem;}
+.card p{margin:0;color:var(--mut);font-size:.92rem;}
+.card code,.sub code,.card p code{background:var(--code);padding:.05rem .3rem;
+border-radius:5px;font-size:.85em;}
+.proof{background:var(--card);border:1px solid var(--line);border-radius:14px;
+padding:1rem 1.1rem;}
+.phead{display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;}
+.pmark{font-size:.66rem;font-weight:800;letter-spacing:.05em;padding:.12rem .4rem;
+border-radius:5px;}
+.pmark.ok{color:#fff;background:var(--acc);}
+.pmark.bad{color:#fff;background:var(--warn);}
+.pid{color:var(--mut);font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;}
+.proof h3{margin:0 0 .15rem;font-size:1rem;}
+.pname{margin:0 0 .6rem;color:var(--mut);font-size:.85rem;}
+.pdetail{margin:0;background:var(--code);border-radius:8px;padding:.6rem .7rem;
+font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--fg);
+white-space:pre-wrap;word-break:break-word;overflow-x:auto;}
+a.ex{display:block;text-decoration:none;color:inherit;background:var(--card);
+border:1px solid var(--line);border-radius:14px;padding:1.1rem 1.2rem;
+transition:border-color .15s;}
+a.ex:hover{border-color:var(--acc);}
+a.ex h3{margin:0 0 .4rem;font-size:1.02rem;color:var(--fg);}
+a.ex .arw{color:var(--acc);}
+a.ex p{margin:0;color:var(--mut);font-size:.92rem;}
+.pipe{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;
+background:var(--card);border:1px solid var(--line);border-radius:14px;
+padding:1rem 1.1rem;}
+.step{font-weight:600;font-size:.9rem;}
+.arr{color:var(--mut);}
+.run{background:var(--code);border-radius:12px;padding:1rem 1.1rem;margin-top:.4rem;
+font:13px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;overflow-x:auto;}
+.run .c{color:var(--mut);}
+.gatewrap{margin:1.4rem 0 0;}
+.gate{display:inline-block;font-size:.8rem;font-weight:700;padding:.3rem .7rem;
+border-radius:8px;}
+.gate.ok{color:var(--acc);background:var(--code);}
+.gate.bad{color:#fff;background:var(--warn);}
+.fp{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--code);
+padding:.9rem 1rem;border-radius:10px;word-break:break-all;font-size:.85rem;
+margin-top:.4rem;}
+.scroll{overflow-x:auto;}
+table{border-collapse:collapse;width:100%;font-size:.88rem;}
+th,td{text-align:left;padding:.42rem .6rem;border-bottom:1px solid var(--line);
+vertical-align:top;}
+th{color:var(--mut);font-weight:600;font-size:.76rem;text-transform:uppercase;
+letter-spacing:.04em;}
+td.f{color:var(--mut);font-weight:600;white-space:nowrap;}
+td.v,td.raw{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.84rem;}
+td.raw{color:var(--mut);}
+td.rule{font-size:.78rem;color:var(--acc);white-space:nowrap;}
+td.sc{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;}
+td.sc.hi{color:var(--hi);}td.sc.mid{color:var(--acc2);}td.sc.lo{color:var(--lo);}
+.tag{display:inline-block;font-size:.68rem;font-weight:700;background:var(--code);
+color:var(--mut);border-radius:5px;padding:.05rem .35rem;letter-spacing:.03em;}
+.total{margin:.7rem 0 0;}.total b{color:var(--acc);}
+tr.withheld td{color:var(--warn);}
+.demosec{background:var(--card);border:1px solid var(--line);border-radius:16px;
+padding:1.4rem;margin:1.5rem 0;}
+.demosec h2{font-size:1.15rem;margin:0 0 .2rem;}
+.demosec h2 .n{color:var(--acc);}
+.q code{background:var(--code);padding:.1rem .35rem;border-radius:5px;font-size:.82rem;}
+.mcite,.mconf,.mcomp,.refuse{font-weight:700;font-size:.72rem;text-transform:uppercase;
+letter-spacing:.04em;padding:.05rem .4rem;border-radius:5px;}
+.mcite{color:var(--acc);background:var(--code);}
+.mconf{color:var(--warn);background:var(--code);}
+.mcomp{color:var(--acc2);background:var(--code);}
+.refuse{color:var(--mut);background:var(--code);}
+.checks{list-style:none;padding:0;margin:.6rem 0 0;}
+.checks li{padding:.28rem 0 .28rem 1.6rem;position:relative;font-size:.92rem;}
+.checks li:before{content:"\2713";position:absolute;left:0;color:var(--acc);
+font-weight:700;}
+footer{color:var(--mut);font-size:.82rem;margin-top:3rem;border-top:1px solid var(--line);
+padding-top:1.2rem;}
+.toggle{position:fixed;top:1rem;right:1rem;background:var(--card);
+border:1px solid var(--line);color:var(--fg);border-radius:8px;padding:.35rem .6rem;
+font-size:.8rem;cursor:pointer;z-index:9;}
+.backlink{display:inline-block;margin-bottom:1rem;font-size:.9rem;}
+</style></head>
+<body>
+<button class="toggle" onclick="var r=document.documentElement;var d=r.getAttribute('data-theme')==='dark';r.setAttribute('data-theme',d?'light':'dark');">theme</button>
+<div class="wrap">
+<a class="backlink" href="index.html">&larr; Lucid MDM</a>
+<header>
+  <p class="k">Lucid MDM &middot; live run</p>
+  <h1>The glass-box golden record.</h1>
+  <p class="lede">The same supplier, three times, with two VAT numbers. Every
+  master-data tool solves this. Only this one <b>refuses to guess</b>, cites the
+  exact source row for every surviving value, and produces the identical record
+  &mdash; hash and all &mdash; every time you run it.</p>
+  <div class="stats">
+    <div class="stat"><b>75</b><span>source rows</span></div>
+    <div class="stat"><b>47</b><span>golden records</span></div>
+    <div class="stat"><b>3</b><span>contradictions queued</span></div>
+    <div class="stat"><b>5</b><span>tensions queued</span></div>
+    <div class="stat"><b>1.000/1.000</b><span>precision / recall</span></div>
+  </div>
+</header>
+
+<div class="demosec" id="match">
+  <h2><span class="n">1.</span> Two messy rows meet &mdash; and match, without ML</h2>
+  <p class="sub">Hashed char-trigram vectors, integer cosine, SimHash banding.
+  Every field's contribution is inspectable; a steward or an auditor can see
+  exactly why.</p>
+  <div class="scroll"><table class="cmp"><thead><tr><th>field</th><th>CRM <span class="tag">CRM-101</span></th><th>SAP <span class="tag">SAP-001</span></th><th>match</th></tr></thead><tbody><tr><td class="f">name</td><td>TANGO2 DISTRIBUTORS PTY LTD</td><td>Tango2 Distributors (Pty) Ltd</td><td class="sc hi">100</td></tr><tr><td class="f">reg_no</td><td>2003/145672/07</td><td>2003/145672/07</td><td class="sc hi">100</td></tr><tr><td class="f">vat_no</td><td>4123456789</td><td>4123456789</td><td class="sc hi">100</td></tr><tr><td class="f">phone</td><td>011 447 2210</td><td>+27 11 447 2210</td><td class="sc hi">100</td></tr><tr><td class="f">email</td><td>accounts@tango2.example</td><td>accounts@tango2.example</td><td class="sc hi">100</td></tr><tr><td class="f">address</td><td>14 Example Road, Town T</td><td>14 Example Rd, Town T, 1401</td><td class="sc hi">100</td></tr><tr><td class="f">credit_limit</td><td>650000</td><td>500000</td><td class="sc ">—</td></tr></tbody></table><p class="total">weighted score <b>100</b>/100 &rarr; <b>MATCH</b></p></div>
+</div>
+
+<div class="demosec" id="golden">
+  <h2><span class="n">2.</span> The golden record &mdash; every field cites its source</h2>
+  <p class="sub">Survivorship by rules-as-data (source trust &gt; recency &gt;
+  completeness). Every surviving value carries a <code>derived_from</code> edge to
+  the exact row and its raw text; losing values are kept in xref, never deleted.</p>
+  <div class="scroll"><table class="golden"><thead><tr><th>field</th><th>golden value</th><th>from</th><th>raw source text</th><th>rule</th></tr></thead><tbody><tr><td class="f">address</td><td class="v">14 Example road</td><td><span class="tag">CRM</span> CRM-101</td><td class="raw">14 Example Road, Town T</td><td class="rule">only_value</td></tr><tr><td class="f">credit_limit</td><td class="v">500000.00</td><td><span class="tag">SAP</span> SAP-001</td><td class="raw">500000</td><td class="rule">source_trust</td></tr><tr><td class="f">email</td><td class="v">accounts@tango2.example</td><td><span class="tag">CRM</span> CRM-101</td><td class="raw">accounts@tango2.example</td><td class="rule">only_value</td></tr><tr><td class="f">name</td><td class="v">tango2 distributors pty ltd</td><td><span class="tag">SAP</span> SAP-001</td><td class="raw">Tango2 Distributors (Pty) Ltd</td><td class="rule">source_trust</td></tr><tr><td class="f">phone</td><td class="v">114472210</td><td><span class="tag">CRM</span> CRM-101</td><td class="raw">011 447 2210</td><td class="rule">only_value</td></tr><tr><td class="f">reg_no</td><td class="v">2003/145672/07</td><td><span class="tag">SAP</span> SAP-001</td><td class="raw">2003/145672/07</td><td class="rule">only_value</td></tr><tr><td class="f">vat_no</td><td class="v">4123456789</td><td><span class="tag">SAP</span> SAP-001</td><td class="raw">4123456789</td><td class="rule">only_value</td></tr></tbody></table></div>
+</div>
+
+<div class="demosec" id="conflict">
+  <h2><span class="n">3.</span> A contradiction is not resolved &mdash; it is surfaced</h2>
+  <p class="sub">One registration number, two VAT numbers. The engine does not
+  average, pick, or guess. It <b>withholds</b> the golden value and queues both,
+  with citations, for a human steward &mdash; whose decision is signed into an HMAC
+  ledger.</p>
+  <div class="scroll"><table class="conflict"><thead><tr><th>value in dispute</th><th>source</th><th>row</th><th>raw text</th></tr></thead><tbody><tr><td class="v">4820134567</td><td><span class="tag">SAP</span></td><td>SAP-002</td><td class="raw">4820134567</td></tr><tr><td class="v">4820134568</td><td><span class="tag">CRM</span></td><td>CRM-102</td><td class="raw">4820134568</td></tr></tbody></table></div>
+  <p class="sub" style="margin-top:1rem">The same cluster's golden record, with
+  <code>vat_no</code> honestly withheld:</p>
+  <div class="scroll"><table class="golden"><thead><tr><th>field</th><th>golden value</th><th>from</th><th>raw source text</th><th>rule</th></tr></thead><tbody><tr><td class="f">address</td><td class="v">Example</td><td><span class="tag">CRM</span> CRM-102</td><td class="raw">Example, Town S</td><td class="rule">only_value</td></tr><tr><td class="f">credit_limit</td><td class="v">120000.00</td><td><span class="tag">SAP</span> SAP-002</td><td class="raw">120000</td><td class="rule">only_value</td></tr><tr><td class="f">email</td><td class="v">info@sierra.example</td><td><span class="tag">CRM</span> CRM-102</td><td class="raw">info@sierra.example</td><td class="rule">only_value</td></tr><tr><td class="f">name</td><td class="v">sierra supplies pty ltd</td><td><span class="tag">SAP</span> SAP-002</td><td class="raw">Sierra Supplies (Edms) Bpk</td><td class="rule">only_value</td></tr><tr><td class="f">phone</td><td class="v">233428811</td><td><span class="tag">CRM</span> CRM-102</td><td class="raw">023 342 8811</td><td class="rule">only_value</td></tr><tr><td class="f">reg_no</td><td class="v">1998/052341/07</td><td><span class="tag">SAP</span> SAP-002</td><td class="raw">1998/052341/07</td><td class="rule">only_value</td></tr><tr class="withheld"><td class="f">vat_no</td><td colspan="4"><i>withheld &mdash; conflict queued for a steward</i></td></tr></tbody></table></div>
+</div>
+
+<div class="demosec" id="ask">
+  <h2><span class="n">4.</span> Ask it anything &mdash; it cites, or it refuses</h2>
+  <p class="sub">A closed query grammar with exactly four answer shapes. No free
+  text is ever generated. A conflict returns <i>both</i> sides; an unknown entity
+  is refused, not hallucinated.</p>
+  <div class="scroll"><table class="ask"><tbody><tr><td class="q"><code>field G-eebe7bae153a email</code></td><td><span class="mcite">cite</span> &rarr; <b>accounts@tango2.example</b> <span class="tag">CRM</span> CRM-101</td></tr><tr><td class="q"><code>field G-73f005f8a5ba vat_no</code></td><td><span class="mconf">conflict</span> &mdash; both cited, no side picked: 4820134567 vs 4820134568</td></tr><tr><td class="q"><code>count suppliers</code></td><td><span class="mcomp">compute</span> &rarr; <b>47</b></td></tr><tr><td class="q"><code>total credit_limit</code></td><td><span class="mcomp">compute</span> &rarr; <b>6362000.00</b></td></tr><tr><td class="q"><code>field NOBODY LTD vat_no</code></td><td><span class="refuse">refuse</span> &mdash; unknown entity</td></tr></tbody></table></div>
+</div>
+
+<div class="demosec" id="proof">
+  <h2><span class="n">5.</span> Run it twice, get the same hash</h2>
+  <p class="sub">The whole mastered state fingerprints to one SHA-256. Two
+  independent builds &mdash; even feeding the rows in reversed order &mdash;
+  produce this identical value.</p>
+  <div class="fp">74558f9fed61367eabf2333ffba43651f968b18ba60921294dc7e6bc1717ee88</div>
+  <ul class="checks">
+    <li><code>verify.py</code> proves, deterministically: two builds &rarr; identical fingerprint</li>
+    <li>one flipped input byte &rarr; the fingerprint moves</li>
+    <li>a contradiction is answered with both values cited, no side picked</li>
+    <li>a tampered store blob &amp; a forged ledger payload are both caught (tamper-<i>evident</i>)</li>
+    <li>replaying the signed ledger reproduces the golden state byte-for-byte</li>
+    <li>match precision 1.000 / recall 1.000 / f1 1.000 on the labelled set</li>
+  </ul>
+</div>
+</div>
+</body></html>
